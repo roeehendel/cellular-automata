@@ -9,7 +9,6 @@ from cellular_automata.video import default_to_color_fn, export_video
 
 def init_fn(state_shape: tuple) -> jnp.ndarray:
     rows, cols, channels = state_shape
-    state = jnp.zeros((rows, cols, channels))
 
     x, y = jnp.meshgrid(jnp.arange(cols), jnp.arange(rows))
 
@@ -29,10 +28,10 @@ def init_fn(state_shape: tuple) -> jnp.ndarray:
 def boundary_init_fn(state_shape: tuple) -> jnp.ndarray:
     state = jnp.full(state_shape, jnp.inf)
 
-    state.at[0, :, :].set(0)
-    state.at[-1, :, :].set(0)
-    state.at[:, 0, :].set(0)
-    state.at[:, -1, :].set(0)
+    state = state.at[0, :, :].set(jnp.array([-1, 0]))
+    state = state.at[-1, :, :].set(jnp.array([-1, 0]))
+    state = state.at[:, 0, :].set(jnp.array([-1, 0]))
+    state = state.at[:, -1, :].set(jnp.array([-1, 0]))
 
     return state
 
@@ -48,10 +47,9 @@ if __name__ == "__main__":
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
-    rows, cols, channels = 100, 100, 2
-    state_shape = (rows, cols, channels)
+    cols, rows, channels = 101, 101, 2
+    state_shape = (cols, rows, channels)
     dt = 1.0
-    c = 1.0
 
     simulation_duration = 100
     video_fps = 10
@@ -61,7 +59,7 @@ if __name__ == "__main__":
 
     states = simulate(
         init_fn=init_fn,
-        step_fn=lambda state, dt=dt: trinary_wave_step_fn(state, dt, c),
+        step_fn=lambda state, dt=dt: trinary_wave_step_fn(state, dt),
         boundary_init_fn=boundary_init_fn,
         boundary_step_fn=boundary_step_fn,
         state_shape=state_shape,

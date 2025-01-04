@@ -1,12 +1,7 @@
 import jax.numpy as jnp
 
 
-def trinary_wave_step_fn(
-    state: jnp.ndarray,
-    dt: float,
-    c: float,
-    damping: float = 0.0,
-) -> jnp.ndarray:
+def trinary_wave_step_fn(state: jnp.ndarray, dt: float) -> jnp.ndarray:
     """
     Compute wave equation update where state values are -1,0,1
     state shape: [n, n, 2] where [..., 0] is position and [..., 1] is velocity
@@ -15,16 +10,13 @@ def trinary_wave_step_fn(
     v = state[..., 1]
 
     # Create padded versions of x that include the boundary values
-    x_padded_n = jnp.vstack([x, x[-1:, :]])  # Pad bottom
-    x_padded_s = jnp.vstack([x[:1, :], x])  # Pad top
-    x_padded_e = jnp.hstack([x, x[:, -1:]])  # Pad right
-    x_padded_w = jnp.hstack([x[:, :1], x])  # Pad left
+    x_padded = jnp.pad(x, pad_width=1, mode="edge")
 
-    # Now we can safely slice to get neighbors
-    x_n = x_padded_n[1:, :]  # Values to the north (below)
-    x_s = x_padded_s[:-1, :]  # Values to the south (above)
-    x_e = x_padded_e[:, 1:]  # Values to the east (right)
-    x_w = x_padded_w[:, :-1]  # Values to the west (left)
+    # Get all neighbors using the padded array
+    x_n = x_padded[:-2, 1:-1]  # North
+    x_s = x_padded[2:, 1:-1]  # South
+    x_e = x_padded[1:-1, 2:]  # East
+    x_w = x_padded[1:-1, :-2]  # West
 
     laplacian = jnp.sign(x_n + x_s + x_e + x_w - 4 * x)
     new_v = jnp.sign(v + laplacian)
