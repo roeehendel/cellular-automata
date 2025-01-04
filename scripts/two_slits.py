@@ -138,6 +138,6 @@ if __name__ == "__main__":
         states=states,
         video_fps=video_fps,
         to_color_fn=default_to_color_fn,
-        # out_filename="wave.mp4",
+        out_filename="two_slits.mp4",
         play=True,
     )
