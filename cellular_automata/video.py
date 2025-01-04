@@ -1,4 +1,5 @@
 import logging
+import os
 from typing import Optional
 
 import cv2
@@ -9,6 +10,9 @@ import numpy as np
 import pygame
 
 logger = logging.getLogger(__name__)
+
+
+OUTPUTS_DIR = "outputs"
 
 
 @jax.jit
@@ -29,6 +33,7 @@ def export_video(
     to_color_fn=default_to_color_fn,
     out_filename: Optional[str] = None,
     play: bool = False,
+    scale: int = 4,
 ):
     logger.info("Converting frames to color")
     color_frames_jax = to_color_fn(states)
@@ -40,27 +45,39 @@ def export_video(
 
     if out_filename is not None:
         logger.info("Saving video")
-        save_video(color_frames=color_frames, fps=video_fps, out_filename=out_filename)
+        save_video(
+            out_filename=out_filename,
+            color_frames=color_frames,
+            fps=video_fps,
+            scale=scale,
+        )
         logger.info("Video saved")
 
     if play:
-        play_video(color_frames=color_frames, fps=video_fps)
+        play_video(
+            color_frames=color_frames,
+            fps=video_fps,
+            scale=scale,
+        )
 
 
-def play_video(color_frames: np.ndarray, fps: int):
+def play_video(color_frames: np.ndarray, fps: int, scale: int = 1):
     pygame.init()
     height, width = color_frames.shape[1:3]
+    scaled_width, scaled_height = width * scale, height * scale
     pygame.display.gl_set_attribute(pygame.GL_CONTEXT_MAJOR_VERSION, 3)
     pygame.display.gl_set_attribute(pygame.GL_CONTEXT_MINOR_VERSION, 3)
     pygame.display.gl_set_attribute(
         pygame.GL_CONTEXT_PROFILE_MASK, pygame.GL_CONTEXT_PROFILE_CORE
     )
-    screen = pygame.display.set_mode((width, height), pygame.OPENGL | pygame.DOUBLEBUF)
+    screen = pygame.display.set_mode(
+        (scaled_width, scaled_height), pygame.OPENGL | pygame.DOUBLEBUF
+    )
 
     # Initialize ModernGL
     ctx = moderngl.create_context()
 
-    # Create texture and program for rendering
+    # Create texture and program for rendering with nearest-neighbor sampling
     prog = ctx.program(
         vertex_shader="""
             #version 330
@@ -97,9 +114,13 @@ def play_video(color_frames: np.ndarray, fps: int):
         ],
     )
 
-    # Create texture
+    # Create texture with nearest-neighbor sampling
     texture = ctx.texture((width, height), 3)
     texture.use(0)
+    texture.filter = (
+        moderngl.NEAREST,
+        moderngl.NEAREST,
+    )  # Enable nearest-neighbor filtering
     prog["texture0"].value = 0
 
     frame_idx = 0
@@ -130,25 +151,26 @@ def play_video(color_frames: np.ndarray, fps: int):
 
 
 def save_video(
+    out_filename: str,
     color_frames: jnp.ndarray,
     fps: int,
-    out_filename: str,
+    scale: int = 1,
 ):
     frames, height, width, channels = color_frames.shape
+    scaled_width, scaled_height = width * scale, height * scale
 
     writer = cv2.VideoWriter(
-        filename=out_filename,
-        fourcc=cv2.VideoWriter_fourcc(*"mp4v"),
+        filename=os.path.join(OUTPUTS_DIR, out_filename),
+        fourcc=cv2.VideoWriter_fourcc(*"avc1"),
         fps=fps,
-        frameSize=(width, height),
+        frameSize=(scaled_width, scaled_height),
         isColor=True,
     )
 
-    # Use numpy's vectorize with correct signature format
-    np.vectorize(writer.write, signature="(m,n,c)->()")(color_frames)
-    # Or just use a simple loop since VideoWriter.write is inherently sequential
-    # for frame in color_frames:
-    #     writer.write(frame)
+    # Scale all frames at once using numpy's vectorization
+    scaled_frames = np.kron(color_frames, np.ones((1, scale, scale, 1)))
+    scaled_frames = scaled_frames.astype(np.uint8)  # Ensure uint8 format
+    np.vectorize(writer.write, signature="(m,n,c)->()")(scaled_frames)
 
     writer.release()
     print(f"Saved {frames} frames to {out_filename}")
