@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 @jax.jit
-def default_to_color_fn(frames: jnp.ndarray) -> np.ndarray:
+def default_to_color_fn(frames: jnp.ndarray) -> jnp.ndarray:
     """
     Simple grayscale mapping using just channel 0, assumed ~ [-1..1].
     Optimized version that processes the entire batch at once.
@@ -25,24 +25,17 @@ def default_to_color_fn(frames: jnp.ndarray) -> np.ndarray:
 
 def export_video(
     states: jnp.ndarray,
-    simulation_dt: float,
-    video_dt: float,
     video_fps: int,
     to_color_fn=default_to_color_fn,
     out_filename: Optional[str] = None,
     play: bool = False,
 ):
-    # sample frames based on video_dt, simulation_dt and video_fps
-    sample_rate = int(video_dt / simulation_dt) // video_fps
-    sampled_states = states[::sample_rate]
-
     logger.info("Converting frames to color")
-    color_frames_jax = to_color_fn(sampled_states)
+    color_frames_jax = to_color_fn(states)
     logger.info("Frames converted to color")
 
     logger.info("Converting frames to numpy array")
-    color_frames = jax.device_get(color_frames_jax)
-    # color_frames = color_frames_jax
+    color_frames = np.array(color_frames_jax)
     logger.info("Frames converted to numpy array")
 
     if out_filename is not None:
