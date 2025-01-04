@@ -90,6 +90,9 @@ def simulate(
         length=output_steps,
     )
 
+    # Include initial state in output
+    states = jnp.concatenate([init_state[None, ...], states], axis=0)
+
     logging.info("Simulating")
     tic = time.perf_counter()
     states = jax.block_until_ready(states)
