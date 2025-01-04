@@ -33,7 +33,7 @@ def export_video(
     to_color_fn=default_to_color_fn,
     out_filename: Optional[str] = None,
     play: bool = False,
-    scale: int = 4,
+    scale: int = 1,
 ):
     logger.info("Converting frames to color")
     color_frames_jax = to_color_fn(states)
