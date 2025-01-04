@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "cellular-automata"
+version = "0.1.0"
+description = ""
+authors = ["Roee Hendel <roee.hendel@gmail.com>"]
+readme = "README.md"
+package-mode = true
+
+[tool.poetry.dependencies]
+python = "^3.12"
+numpy = "^2.2.1"
+opencv-python = "^4.10.0.84"
+moderngl = "^5.12.0"
+pyglet = "^2.0.20"
+pygame = "^2.6.1"
+jax = { extras = ["metal"], version = "^0.4.38" }
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
