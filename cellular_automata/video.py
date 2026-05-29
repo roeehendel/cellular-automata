@@ -156,7 +156,7 @@ def save_video(
     fps: int,
     scale: int = 1,
 ):
-    frames, height, width, channels = color_frames.shape
+    frames, height, width = color_frames.shape[:3]
     scaled_width, scaled_height = width * scale, height * scale
 
     writer = cv2.VideoWriter(
